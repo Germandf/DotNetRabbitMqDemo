@@ -10,15 +10,29 @@ var factory = new ConnectionFactory
     Password = "guest",
     VirtualHost = "/",
 };
+//factory.AutomaticRecoveryEnabled = true;
 using var connection = factory.CreateConnection();
 using var channel = connection.CreateModel();
 channel.QueueDeclare("flights", durable: true, exclusive: false, autoDelete: false);
 var consumer = new EventingBasicConsumer(channel);
-consumer.Received += (model, args) =>
+consumer.Received += async (model, args) =>
 {
+    await Task.Delay(500);
     var body = args.Body.ToArray();
     var message = Encoding.UTF8.GetString(body);
-    Console.WriteLine($"A message has been received: {message}");
+    try
+    {
+        if (message.Contains("test"))
+            throw new Exception("test");
+
+        Console.WriteLine($"A message has been received: {message}");
+        channel.BasicAck(args.DeliveryTag, false);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error processing message: {ex.Message}");
+        channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
+    }
 };
-channel.BasicConsume("flights", true, consumer);
+channel.BasicConsume("flights", false, consumer);
 Console.ReadKey();

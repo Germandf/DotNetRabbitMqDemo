@@ -20,6 +20,7 @@ public class MessageProducer : IMessageProducer
             Password = "guest",
             VirtualHost = "/",
         };
+        //factory.AutomaticRecoveryEnabled = true;
         using var connection = factory.CreateConnection();
         using var channel = connection.CreateModel();
         channel.QueueDeclare("flights", durable: true, exclusive: false, autoDelete: false);
