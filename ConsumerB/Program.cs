@@ -2,7 +2,7 @@
 using RabbitMQ.Client.Events;
 using System.Text;
 
-Console.WriteLine("Welcome to ConsumerA!");
+Console.WriteLine("Welcome to ConsumerB!");
 var factory = new ConnectionFactory
 {
     HostName = "localhost",
@@ -14,8 +14,8 @@ var factory = new ConnectionFactory
 using var connection = factory.CreateConnection();
 using var channel = connection.CreateModel();
 channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Direct, durable: true, autoDelete: false);
-channel.QueueDeclare("flights-a", durable: true, exclusive: false, autoDelete: false);
-channel.QueueBind("flights-a", "dotnet.rabbitmq.demo", "flights");
+channel.QueueDeclare("flights-b", durable: true, exclusive: false, autoDelete: false);
+channel.QueueBind("flights-b", "dotnet.rabbitmq.demo", "flights");
 var consumer = new EventingBasicConsumer(channel);
 consumer.Received += async (model, args) =>
 {
@@ -36,5 +36,5 @@ consumer.Received += async (model, args) =>
         channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
     }
 };
-channel.BasicConsume("flights-a", false, consumer);
+channel.BasicConsume("flights-b", false, consumer);
 Console.ReadKey();
