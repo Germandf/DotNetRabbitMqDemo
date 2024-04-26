@@ -15,7 +15,7 @@ using var connection = factory.CreateConnection();
 using var channel = connection.CreateModel();
 channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Direct, durable: true, autoDelete: false);
 channel.QueueDeclare("dotnet.rabbitmq.demo.consumer.b", durable: true, exclusive: false, autoDelete: false);
-channel.QueueBind("dotnet.rabbitmq.demo.consumer.b", "dotnet.rabbitmq.demo", "flights");
+channel.QueueBind("dotnet.rabbitmq.demo.consumer.b", "dotnet.rabbitmq.demo", "flight.created");
 var consumer = new EventingBasicConsumer(channel);
 consumer.Received += async (model, args) =>
 {

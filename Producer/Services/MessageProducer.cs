@@ -26,6 +26,6 @@ public class MessageProducer : IMessageProducer
         channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Direct, durable: true, autoDelete: false);
         var json = JsonSerializer.Serialize(message);
         var body = Encoding.UTF8.GetBytes(json);
-        channel.BasicPublish("dotnet.rabbitmq.demo", "flights", body: body);
+        channel.BasicPublish("dotnet.rabbitmq.demo", "flight.created", body: body);
     }
 }
