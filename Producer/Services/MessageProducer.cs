@@ -23,7 +23,7 @@ public class MessageProducer : IMessageProducer
         //factory.AutomaticRecoveryEnabled = true;
         using var connection = factory.CreateConnection();
         using var channel = connection.CreateModel();
-        channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Direct, durable: true, autoDelete: false);
+        channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Topic, durable: true, autoDelete: false);
         var json = JsonSerializer.Serialize(message);
         var body = Encoding.UTF8.GetBytes(json);
         channel.BasicPublish("dotnet.rabbitmq.demo", routingKey, body: body);

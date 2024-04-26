@@ -13,7 +13,7 @@ var factory = new ConnectionFactory
 //factory.AutomaticRecoveryEnabled = true;
 using var connection = factory.CreateConnection();
 using var channel = connection.CreateModel();
-channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Direct, durable: true, autoDelete: false);
+channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Topic, durable: true, autoDelete: false);
 channel.QueueDeclare("dotnet.rabbitmq.demo.consumer.a", durable: true, exclusive: false, autoDelete: false);
 channel.QueueBind("dotnet.rabbitmq.demo.consumer.a", "dotnet.rabbitmq.demo", "flight.created");
 channel.QueueBind("dotnet.rabbitmq.demo.consumer.a", "dotnet.rabbitmq.demo", "customer.created");
@@ -28,7 +28,7 @@ consumer.Received += async (model, args) =>
         if (message.Contains("test"))
             throw new Exception("test");
 
-        Console.WriteLine($"A message has been received: {message}");
+        Console.WriteLine($"{args.RoutingKey}: {message}");
         channel.BasicAck(args.DeliveryTag, false);
     }
     catch (Exception ex)
