@@ -1,3 +1,4 @@
+using Producer.Models;
 using Producer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,17 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
-app.MapControllers();
+
+app.MapPost("/customers", (Customer customer, IMessageProducer messageProducer) =>
+{
+    messageProducer.SendMessage(customer, "customer.created");
+    return Results.Ok();
+});
+
+app.MapPost("/flights", (Flight flight, IMessageProducer messageProducer) =>
+{
+    messageProducer.SendMessage(flight, "flight.created");
+    return Results.Ok();
+});
 
 app.Run();
