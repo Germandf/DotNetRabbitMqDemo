@@ -61,12 +61,11 @@ public class RabbitMqConsumer : BackgroundService
 
         consumer.Received += async (model, args) =>
         {
-            var body = args.Body.ToArray();
-            var message = Encoding.UTF8.GetString(body);
             try
             {
+                var body = args.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
                 using var scope = _serviceProvider.CreateScope();
-                using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
                 if (TryDeserialize<CustomerCreated>(message, out var customerCreated))
                 {
@@ -80,10 +79,7 @@ public class RabbitMqConsumer : BackgroundService
                 }
                 else
                 {
-                    if (message.Contains("test"))
-                        throw new Exception("test");
-
-                    _logger.LogInformation($"{args.RoutingKey}: {message}");
+                    _logger.LogInformation($"Message handling not found for {args.RoutingKey}: {message}");
                 }
                 
                 _channel.BasicAck(args.DeliveryTag, false);

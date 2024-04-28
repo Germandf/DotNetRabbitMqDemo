@@ -10,7 +10,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<RabbitMqConsumer>();
 builder.Services.AddDbContext<ApplicationDbContext>(opts =>
-    opts.UseInMemoryDatabase("consumerC"));
+    opts.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
 builder.Services.AddScoped<ICreateCustomerService, CreateCustomerService>();
 builder.Services.AddScoped<ICreateFlightService, CreateFlightService>();
 
