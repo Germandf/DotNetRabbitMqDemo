@@ -16,6 +16,17 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
+app.MapPost("/cities", (CreateCityRequest city, IMessageProducer messageProducer) =>
+{
+    var cityCreated = new CityCreated
+    {
+        Id = Guid.NewGuid(),
+        Name = city.Name,
+    };
+    messageProducer.SendMessage(cityCreated, "city.created");
+    return Results.Ok();
+});
+
 app.MapPost("/customers", (CreateCustomerRequest customer, IMessageProducer messageProducer) =>
 {
     var customerCreated = new CustomerCreated

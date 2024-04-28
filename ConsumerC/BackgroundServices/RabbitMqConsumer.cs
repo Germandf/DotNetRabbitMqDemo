@@ -1,5 +1,6 @@
 ﻿using ConsumerC.Features;
 using ConsumerC.Models;
+using MediatR;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Shared;
@@ -66,16 +67,20 @@ public class RabbitMqConsumer : BackgroundService
                 var body = args.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
                 using var scope = _serviceProvider.CreateScope();
+                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                if (TryDeserialize<CustomerCreated>(message, out var customerCreated))
+                if (TryDeserialize<CityCreated>(message, out var cityCreated))
                 {
-                    var handler = scope.ServiceProvider.GetRequiredService<ICreateCustomerService>();
-                    await handler.Handle(customerCreated);
+                    var handler = scope.ServiceProvider.GetRequiredService<ICreateCityService>();
+                    await handler.Handle(cityCreated);
+                }
+                else if (TryDeserialize<CustomerCreated>(message, out var customerCreated))
+                {
+                    await mediator.Send(new CreateCustomer.Request(customerCreated));
                 }
                 else if (TryDeserialize<FlightCreated>(message, out var flightCreated))
                 {
-                    var handler = scope.ServiceProvider.GetRequiredService<ICreateFlightService>();
-                    await handler.Handle(flightCreated);
+                    await mediator.Send(new CreateFlight.Request(flightCreated));
                 }
                 else
                 {

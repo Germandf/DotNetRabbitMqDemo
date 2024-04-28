@@ -8,6 +8,7 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public DbSet<City> Cities { get; set; }
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Flight> Flights { get; set; }
 }
