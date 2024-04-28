@@ -1,6 +1,7 @@
 ﻿using ConsumerC.Models;
 using MediatR;
 using Shared;
+using System.Text.Json;
 
 namespace ConsumerC.Features;
 
@@ -15,13 +16,12 @@ public class CreateFlight
             var flight = new Flight
             {
                 Id = request.FlightCreated.Id,
-                CustomerId = request.FlightCreated.CustomerId,
                 From = request.FlightCreated.From,
                 To = request.FlightCreated.To,
             };
             dbContext.Flights.Add(flight);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation($"{nameof(FlightCreated)}: {request.FlightCreated}");
+            logger.LogInformation($"{nameof(FlightCreated)}: {JsonSerializer.Serialize(request.FlightCreated)}");
             return Unit.Value;
         }
     }

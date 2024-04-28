@@ -1,6 +1,7 @@
 ﻿using ConsumerC.Models;
 using MediatR;
 using Shared;
+using System.Text.Json;
 
 namespace ConsumerC.Features;
 
@@ -19,7 +20,7 @@ public class CreateCustomer
             };
             dbContext.Customers.Add(customer);
             await dbContext.SaveChangesAsync();
-            logger.LogInformation($"{nameof(CustomerCreated)}: {request.CustomerCreated}");
+            logger.LogInformation($"{nameof(CustomerCreated)}: {JsonSerializer.Serialize(request.CustomerCreated)}");
             return Unit.Value;
         }
     }

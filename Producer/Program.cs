@@ -43,7 +43,6 @@ app.MapPost("/flights", (CreateFlightRequest flight, IMessageProducer messagePro
     var flightCreated = new FlightCreated
     {
         Id = Guid.NewGuid(),
-        CustomerId = flight.CustomerId,
         From = flight.From,
         To = flight.To,
     };

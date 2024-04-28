@@ -1,5 +1,6 @@
 ﻿using ConsumerC.Models;
 using Shared;
+using System.Text.Json;
 
 namespace ConsumerC.Features;
 
@@ -28,6 +29,6 @@ public class CreateCityService : ICreateCityService
         };
         _dbContext.Cities.Add(city);
         await _dbContext.SaveChangesAsync();
-        _logger.LogInformation($"{nameof(CityCreated)}: {cityCreated}");
+        _logger.LogInformation($"{nameof(CityCreated)}: {JsonSerializer.Serialize(cityCreated)}");
     }
 }

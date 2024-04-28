@@ -69,16 +69,16 @@ public class RabbitMqConsumer : BackgroundService
                 using var scope = _serviceProvider.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                if (TryDeserialize<CityCreated>(message, out var cityCreated))
+                if (args.RoutingKey is "city.created" && TryDeserialize<CityCreated>(message, out var cityCreated))
                 {
                     var handler = scope.ServiceProvider.GetRequiredService<ICreateCityService>();
                     await handler.Handle(cityCreated);
                 }
-                else if (TryDeserialize<CustomerCreated>(message, out var customerCreated))
+                else if (args.RoutingKey is "customer.created" && TryDeserialize<CustomerCreated>(message, out var customerCreated))
                 {
                     await mediator.Send(new CreateCustomer.Request(customerCreated));
                 }
-                else if (TryDeserialize<FlightCreated>(message, out var flightCreated))
+                else if (args.RoutingKey is "flight.created" && TryDeserialize<FlightCreated>(message, out var flightCreated))
                 {
                     await mediator.Send(new CreateFlight.Request(flightCreated));
                 }
