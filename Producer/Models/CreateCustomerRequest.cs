@@ -1,7 +1,6 @@
 ﻿namespace Producer.Models;
 
-public class Customer
+public class CreateCustomerRequest
 {
-    public required int Id { get; set; }
     public required string Name { get; set; }
 }

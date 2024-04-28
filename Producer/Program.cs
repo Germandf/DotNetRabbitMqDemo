@@ -1,5 +1,6 @@
 using Producer.Models;
 using Producer.Services;
+using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,15 +16,27 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
-app.MapPost("/customers", (Customer customer, IMessageProducer messageProducer) =>
+app.MapPost("/customers", (CreateCustomerRequest customer, IMessageProducer messageProducer) =>
 {
-    messageProducer.SendMessage(customer, "customer.created");
+    var customerCreated = new CustomerCreated
+    {
+        Id = Guid.NewGuid(),
+        Name = customer.Name,
+    };
+    messageProducer.SendMessage(customerCreated, "customer.created");
     return Results.Ok();
 });
 
-app.MapPost("/flights", (Flight flight, IMessageProducer messageProducer) =>
+app.MapPost("/flights", (CreateFlightRequest flight, IMessageProducer messageProducer) =>
 {
-    messageProducer.SendMessage(flight, "flight.created");
+    var flightCreated = new FlightCreated
+    {
+        Id = Guid.NewGuid(),
+        CustomerId = flight.CustomerId,
+        From = flight.From,
+        To = flight.To,
+    };
+    messageProducer.SendMessage(flightCreated, "flight.created");
     return Results.Ok();
 });
 
