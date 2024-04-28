@@ -1,31 +1,31 @@
-﻿using ConsumerC.Features;
-using ConsumerC.Models;
+﻿using ConsumerC.Extensions;
+using ConsumerC.Features;
 using MediatR;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Shared;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Text.Json;
 
 namespace ConsumerC.BackgroundServices;
 
 public class RabbitMqConsumer : BackgroundService
 {
+    private const string Exchange = "dotnet.rabbitmq.demo";
+    private const string Queue = "dotnet.rabbitmq.demo.consumer.c";
+
     private readonly IConnection _connection;
     private readonly IModel _channel;
-    private ILogger<RabbitMqConsumer> _logger;
-    private readonly IServiceProvider _serviceProvider;
 
-    public RabbitMqConsumer(ILogger<RabbitMqConsumer> logger, IServiceProvider serviceProvider)
+    private readonly IServiceProvider _serviceProvider;
+    private ILogger<RabbitMqConsumer> _logger;
+
+    public RabbitMqConsumer(IServiceProvider serviceProvider, ILogger<RabbitMqConsumer> logger)
     {
         var factory = new ConnectionFactory
         {
             HostName = "localhost",
             UserName = "guest",
             Password = "guest",
-            VirtualHost = "/",
-            // https://www.rabbitmq.com/client-libraries/dotnet-api-guide#consuming-async
             DispatchConsumersAsync = true,
         };
 
@@ -34,24 +34,24 @@ public class RabbitMqConsumer : BackgroundService
         _channel = _connection.CreateModel();
 
         _channel.ExchangeDeclare(
-            "dotnet.rabbitmq.demo",
-            ExchangeType.Topic,
+            exchange: Exchange,
+            type: ExchangeType.Topic,
             durable: true,
             autoDelete: false);
 
         _channel.QueueDeclare(
-            "dotnet.rabbitmq.demo.consumer.c",
+            queue: Queue,
             durable: true,
             exclusive: false,
             autoDelete: false);
 
         _channel.QueueBind(
-            "dotnet.rabbitmq.demo.consumer.c",
-            "dotnet.rabbitmq.demo",
-            "*.*");
+            queue: Queue,
+            exchange: Exchange,
+            routingKey: "*.*");
 
-        _logger = logger;
         _serviceProvider = serviceProvider;
+        _logger = logger;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -69,16 +69,16 @@ public class RabbitMqConsumer : BackgroundService
                 using var scope = _serviceProvider.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                if (args.RoutingKey is "city.created" && TryDeserialize<CityCreated>(message, out var cityCreated))
+                if (args.RoutingKey is "city.created" && message.TryDeserialize<CityCreated>(out var cityCreated))
                 {
                     var handler = scope.ServiceProvider.GetRequiredService<ICreateCityService>();
                     await handler.Handle(cityCreated);
                 }
-                else if (args.RoutingKey is "customer.created" && TryDeserialize<CustomerCreated>(message, out var customerCreated))
+                else if (args.RoutingKey is "customer.created" && message.TryDeserialize<CustomerCreated>(out var customerCreated))
                 {
                     await mediator.Send(new CreateCustomer.Request(customerCreated));
                 }
-                else if (args.RoutingKey is "flight.created" && TryDeserialize<FlightCreated>(message, out var flightCreated))
+                else if (args.RoutingKey is "flight.created" && message.TryDeserialize<FlightCreated>(out var flightCreated))
                 {
                     await mediator.Send(new CreateFlight.Request(flightCreated));
                 }
@@ -96,22 +96,8 @@ public class RabbitMqConsumer : BackgroundService
             }
         };
 
-        _channel.BasicConsume("dotnet.rabbitmq.demo.consumer.c", false, consumer);
+        _channel.BasicConsume(Queue, false, consumer);
 
         return Task.CompletedTask;
-    }
-
-    private bool TryDeserialize<T>(string jsonString, [NotNullWhen(true)] out T? model) where T : class
-    {
-        try
-        {
-            model = JsonSerializer.Deserialize<T>(jsonString);
-            return model != null;
-        }
-        catch (JsonException)
-        {
-            model = null;
-            return false;
-        }
     }
 }
