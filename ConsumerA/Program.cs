@@ -17,6 +17,7 @@ channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Topic, durable: tru
 channel.QueueDeclare("dotnet.rabbitmq.demo.consumer.a", durable: true, exclusive: false, autoDelete: false);
 channel.QueueBind("dotnet.rabbitmq.demo.consumer.a", "dotnet.rabbitmq.demo", "flight.created");
 channel.QueueBind("dotnet.rabbitmq.demo.consumer.a", "dotnet.rabbitmq.demo", "customer.created");
+//channel.BasicQos(0, 1, false);
 var consumer = new EventingBasicConsumer(channel);
 consumer.Received += async (model, args) =>
 {
