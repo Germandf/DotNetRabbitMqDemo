@@ -1,4 +1,4 @@
-﻿namespace ConsumerC.Models;
+﻿namespace ConsumerC.Persistence.Entities;
 
 public class Flight
 {

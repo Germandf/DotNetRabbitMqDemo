@@ -1,4 +1,5 @@
-﻿using ConsumerC.Models;
+﻿using ConsumerC.Persistence;
+using ConsumerC.Persistence.Entities;
 using Shared;
 using System.Text.Json;
 

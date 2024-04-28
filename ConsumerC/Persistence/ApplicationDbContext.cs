@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ConsumerC.Persistence.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace ConsumerC.Models;
+namespace ConsumerC.Persistence;
 
 public class ApplicationDbContext : DbContext
 {

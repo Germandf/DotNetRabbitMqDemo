@@ -1,22 +1,76 @@
 using ConsumerC.BackgroundServices;
 using ConsumerC.Features;
-using ConsumerC.Models;
+using ConsumerC.Persistence;
+using ConsumerC.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Npgsql;
+using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// PostgreSql
+builder.Services.Configure<PostgreSqlSettings>(builder.Configuration.GetSection(nameof(PostgreSqlSettings)));
+builder.Services.AddDbContext<ApplicationDbContext>((sp, opts) =>
+{
+    var settings = sp.GetRequiredService<IOptions<PostgreSqlSettings>>().Value;
+
+    var connectionString = new NpgsqlConnectionStringBuilder
+    {
+        Host = settings.Host,
+        Port = int.Parse(settings.Port),
+        Username = settings.Username,
+        Password = settings.Password,
+        Database = settings.Database,
+    }.ToString();
+
+    opts.UseNpgsql(connectionString, o => o.SetPostgresVersion(12, 0));
+});
+
+// RabbitMq
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection(nameof(RabbitMqSettings)));
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
+
+    var factory = new ConnectionFactory
+    {
+        HostName = settings.Host,
+        Port = int.Parse(settings.Port),
+        UserName = settings.Username,
+        Password = settings.Password,
+        DispatchConsumersAsync = true,
+    };
+
+    var connection = factory.CreateConnection();
+    var channel = connection.CreateModel();
+
+    channel.ExchangeDeclare(
+        exchange: settings.Exchange,
+        type: ExchangeType.Topic,
+        durable: true,
+        autoDelete: false);
+
+    channel.QueueDeclare(
+        queue: settings.Queue,
+        durable: true,
+        exclusive: false,
+        autoDelete: false);
+
+    channel.QueueBind(
+        queue: settings.Queue,
+        exchange: settings.Exchange,
+        routingKey: "*.*");
+
+    return channel;
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHostedService<RabbitMqConsumer>();
-builder.Services.AddDbContext<ApplicationDbContext>(opts =>
-    opts.UseNpgsql(
-        builder.Configuration.GetConnectionString("PostgreSQL"),
-        // Avoid exception calling EnsureDeleted with PostgreSQL provider
-        // https://github.com/npgsql/efcore.pg/issues/2970
-        o => o.SetPostgresVersion(12, 0)));
 builder.Services.AddScoped<ICreateCityService, CreateCityService>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
+builder.Services.AddHostedService<RabbitMqConsumer>();
 
 var app = builder.Build();
 

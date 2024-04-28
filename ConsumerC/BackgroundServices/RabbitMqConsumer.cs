@@ -1,6 +1,8 @@
 ﻿using ConsumerC.Extensions;
 using ConsumerC.Features;
+using ConsumerC.Settings;
 using MediatR;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Shared;
@@ -8,65 +10,23 @@ using System.Text;
 
 namespace ConsumerC.BackgroundServices;
 
-public class RabbitMqConsumer : BackgroundService
+public class RabbitMqConsumer(
+    IOptions<RabbitMqSettings> rabbitMqSettings,
+    IModel channel,
+    IServiceProvider serviceProvider,
+    ILogger<RabbitMqConsumer> logger) : BackgroundService
 {
-    private const string Exchange = "dotnet.rabbitmq.demo";
-    private const string Queue = "dotnet.rabbitmq.demo.consumer.c";
-
-    private readonly IConnection _connection;
-    private readonly IModel _channel;
-
-    private readonly IServiceProvider _serviceProvider;
-    private ILogger<RabbitMqConsumer> _logger;
-
-    public RabbitMqConsumer(IServiceProvider serviceProvider, ILogger<RabbitMqConsumer> logger)
-    {
-        var factory = new ConnectionFactory
-        {
-            HostName = "localhost",
-            UserName = "guest",
-            Password = "guest",
-            DispatchConsumersAsync = true,
-        };
-
-        _connection = factory.CreateConnection();
-
-        _channel = _connection.CreateModel();
-
-        _channel.ExchangeDeclare(
-            exchange: Exchange,
-            type: ExchangeType.Topic,
-            durable: true,
-            autoDelete: false);
-
-        _channel.QueueDeclare(
-            queue: Queue,
-            durable: true,
-            exclusive: false,
-            autoDelete: false);
-
-        _channel.QueueBind(
-            queue: Queue,
-            exchange: Exchange,
-            routingKey: "*.*");
-
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
-
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         stoppingToken.ThrowIfCancellationRequested();
 
-        var consumer = new AsyncEventingBasicConsumer(_channel);
-
+        var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += async (model, args) =>
         {
             try
             {
-                var body = args.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
-                using var scope = _serviceProvider.CreateScope();
+                var message = Encoding.UTF8.GetString(args.Body.ToArray());
+                using var scope = serviceProvider.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
                 if (args.RoutingKey is "city.created" && message.TryDeserialize<CityCreated>(out var cityCreated))
@@ -84,19 +44,18 @@ public class RabbitMqConsumer : BackgroundService
                 }
                 else
                 {
-                    _logger.LogInformation($"Message handling not found for {args.RoutingKey}: {message}");
+                    logger.LogInformation($"Message handling not found for {args.RoutingKey}: {message}");
                 }
                 
-                _channel.BasicAck(args.DeliveryTag, false);
+                channel.BasicAck(args.DeliveryTag, false);
             }
             catch (Exception ex)
             {
-                _logger.LogInformation($"Error processing message: {ex.Message}");
-                _channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
+                logger.LogInformation($"Error processing message: {ex.Message}");
+                channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
             }
         };
-
-        _channel.BasicConsume(Queue, false, consumer);
+        channel.BasicConsume(rabbitMqSettings.Value.Queue, false, consumer);
 
         return Task.CompletedTask;
     }
