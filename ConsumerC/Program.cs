@@ -1,4 +1,5 @@
 using ConsumerC.BackgroundServices;
+using ConsumerC.Features;
 using ConsumerC.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<RabbitMqConsumer>();
 builder.Services.AddDbContext<ApplicationDbContext>(opts =>
     opts.UseInMemoryDatabase("consumerC"));
+builder.Services.AddScoped<ICreateCustomerService, CreateCustomerService>();
+builder.Services.AddScoped<ICreateFlightService, CreateFlightService>();
 
 var app = builder.Build();
 

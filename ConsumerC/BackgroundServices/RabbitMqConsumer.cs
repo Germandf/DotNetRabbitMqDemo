@@ -1,4 +1,5 @@
-﻿using ConsumerC.Models;
+﻿using ConsumerC.Features;
+using ConsumerC.Models;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Shared;
@@ -69,27 +70,13 @@ public class RabbitMqConsumer : BackgroundService
 
                 if (TryDeserialize<CustomerCreated>(message, out var customerCreated))
                 {
-                    var customer = new Customer
-                    {
-                        Id = customerCreated.Id,
-                        Name = customerCreated.Name,
-                    };
-                    dbContext.Customers.Add(customer);
-                    await dbContext.SaveChangesAsync();
-                    _logger.LogInformation($"{args.RoutingKey}: Deserialized as {nameof(CustomerCreated)}: {message}");
+                    var handler = scope.ServiceProvider.GetRequiredService<ICreateCustomerService>();
+                    await handler.Handle(customerCreated);
                 }
                 else if (TryDeserialize<FlightCreated>(message, out var flightCreated))
                 {
-                    var flight = new Flight
-                    {
-                        Id = flightCreated.Id,
-                        CustomerId = flightCreated.CustomerId,
-                        From = flightCreated.From,
-                        To = flightCreated.To,
-                    };
-                    dbContext.Flights.Add(flight);
-                    await dbContext.SaveChangesAsync();
-                    _logger.LogInformation($"{args.RoutingKey}: Deserialized as {nameof(FlightCreated)}: {message}");
+                    var handler = scope.ServiceProvider.GetRequiredService<ICreateFlightService>();
+                    await handler.Handle(flightCreated);
                 }
                 else
                 {
