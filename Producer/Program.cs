@@ -27,4 +27,6 @@ app.MapPost("/flights", (Flight flight, IMessageProducer messageProducer) =>
     return Results.Ok();
 });
 
+Console.WriteLine("Welcome to Producer!");
+
 app.Run();
