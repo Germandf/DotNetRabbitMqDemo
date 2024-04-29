@@ -55,11 +55,37 @@ builder.Services.AddSingleton(sp =>
         queue: settings.Queue,
         durable: true,
         exclusive: false,
-        autoDelete: false);
+        autoDelete: false,
+        arguments: new Dictionary<string, object>
+        {
+            { "x-dead-letter-exchange", settings.RetryExchange }
+        });
 
     channel.QueueBind(
         queue: settings.Queue,
         exchange: settings.Exchange,
+        routingKey: "*.*");
+
+    channel.ExchangeDeclare(
+        exchange: settings.RetryExchange,
+        type: ExchangeType.Topic,
+        durable: true,
+        autoDelete: false);
+
+    channel.QueueDeclare(
+        queue: settings.RetryQueue,
+        durable: true,
+        exclusive: false,
+        autoDelete: false,
+        new Dictionary<string, object>
+        {
+            { "x-dead-letter-exchange", settings.Exchange },
+            { "x-message-ttl", settings.RetryInitialTTL }
+        });
+
+    channel.QueueBind(
+        queue: settings.RetryQueue,
+        exchange: settings.RetryExchange,
         routingKey: "*.*");
 
     return channel;

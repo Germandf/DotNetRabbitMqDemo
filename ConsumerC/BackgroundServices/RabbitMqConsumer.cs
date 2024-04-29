@@ -23,9 +23,10 @@ public class RabbitMqConsumer(
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += async (model, args) =>
         {
+            var body = args.Body.ToArray();
+            var message = Encoding.UTF8.GetString(body);
             try
             {
-                var message = Encoding.UTF8.GetString(args.Body.ToArray());
                 using var scope = serviceProvider.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
@@ -51,8 +52,17 @@ public class RabbitMqConsumer(
             }
             catch (Exception ex)
             {
-                logger.LogInformation($"Error processing message: {ex.Message}");
-                channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
+                logger.LogError($"Error processing message: {ex.Message}");
+
+                channel.BasicPublish(
+                    exchange: rabbitMqSettings.Value.RetryExchange,
+                    routingKey: args.RoutingKey,
+                    basicProperties: args.BasicProperties,
+                    body: body);
+
+                channel.BasicAck(
+                    deliveryTag: args.DeliveryTag,
+                    multiple: false);
             }
         };
         channel.BasicConsume(rabbitMqSettings.Value.Queue, false, consumer);
