@@ -11,7 +11,7 @@ var factory = new ConnectionFactory
     UserName = "guest",
     Password = "guest",
 };
-using var connection = factory.CreateConnection();
+using var connection = factory.CreateConnection("DotNetRabbitMqDemo.ConsumerB");
 using var channel = connection.CreateModel();
 channel.ExchangeDeclare(exchange, ExchangeType.Topic, durable: true, autoDelete: false);
 channel.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);

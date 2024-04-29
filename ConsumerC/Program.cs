@@ -42,7 +42,9 @@ builder.Services.AddSingleton(sp =>
         DispatchConsumersAsync = true,
     };
 
-    var connection = factory.CreateConnection();
+    var connection = factory.CreateConnection(
+        clientProvidedName: settings.ClientProvidedName);
+
     var channel = connection.CreateModel();
 
     channel.ExchangeDeclare(
