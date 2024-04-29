@@ -10,7 +10,6 @@ var factory = new ConnectionFactory
     Password = "guest",
     VirtualHost = "/",
 };
-//factory.AutomaticRecoveryEnabled = true;
 using var connection = factory.CreateConnection();
 using var channel = connection.CreateModel();
 channel.ExchangeDeclare("dotnet.rabbitmq.demo", ExchangeType.Topic, durable: true, autoDelete: false);

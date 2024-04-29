@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Options;
+using Producer.Extensions;
 using Producer.Models;
-using Producer.Services;
+using RabbitMQ.Client;
 using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,7 +9,31 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<IMessageProducer, MessageProducer>();
+builder.Services.Configure<RabbitMqSettings>(builder.Configuration.GetSection(nameof(RabbitMqSettings)));
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<RabbitMqSettings>>().Value;
+
+    var factory = new ConnectionFactory
+    {
+        HostName = settings.Host,
+        Port = int.Parse(settings.Port),
+        UserName = settings.Username,
+        Password = settings.Password,
+        DispatchConsumersAsync = true,
+    };
+
+    var connection = factory.CreateConnection();
+    var channel = connection.CreateModel();
+
+    channel.ExchangeDeclare(
+        exchange: settings.Exchange,
+        type: ExchangeType.Topic,
+        durable: true,
+        autoDelete: false);
+
+    return channel;
+});
 
 var app = builder.Build();
 
@@ -16,29 +42,39 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 
-app.MapPost("/cities", (CreateCityRequest city, IMessageProducer messageProducer) =>
+app.MapPost("/cities", (CreateCityRequest city, IOptions<RabbitMqSettings> settings, IModel channel) =>
 {
     var cityCreated = new CityCreated
     {
         Id = Guid.NewGuid(),
         Name = city.Name,
     };
-    messageProducer.SendMessage(cityCreated, "city.created");
+
+    channel.BasicPublish(
+        exchange: settings.Value.Exchange,
+        routingKey: "city.created",
+        body: cityCreated.GetJsonBytes());
+
     return Results.Ok();
 });
 
-app.MapPost("/customers", (CreateCustomerRequest customer, IMessageProducer messageProducer) =>
+app.MapPost("/customers", (CreateCustomerRequest customer, IOptions<RabbitMqSettings> settings, IModel channel) =>
 {
     var customerCreated = new CustomerCreated
     {
         Id = Guid.NewGuid(),
         Name = customer.Name,
     };
-    messageProducer.SendMessage(customerCreated, "customer.created");
+
+    channel.BasicPublish(
+        exchange: settings.Value.Exchange,
+        routingKey: "customer.created",
+        body: customerCreated.GetJsonBytes());
+
     return Results.Ok();
 });
 
-app.MapPost("/flights", (CreateFlightRequest flight, IMessageProducer messageProducer) =>
+app.MapPost("/flights", (CreateFlightRequest flight, IOptions<RabbitMqSettings> settings, IModel channel) =>
 {
     var flightCreated = new FlightCreated
     {
@@ -46,7 +82,12 @@ app.MapPost("/flights", (CreateFlightRequest flight, IMessageProducer messagePro
         From = flight.From,
         To = flight.To,
     };
-    messageProducer.SendMessage(flightCreated, "flight.created");
+
+    channel.BasicPublish(
+        exchange: settings.Value.Exchange,
+        routingKey: "flight.created",
+        body: flightCreated.GetJsonBytes());
+
     return Results.Ok();
 });
 
