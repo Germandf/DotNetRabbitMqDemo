@@ -48,12 +48,20 @@ public class RabbitMqConsumer(
                     logger.LogInformation($"Message handling not found for {args.RoutingKey}: {message}");
                 }
                 
-                channel.BasicAck(args.DeliveryTag, false);
+                channel.BasicAck(
+                    deliveryTag: args.DeliveryTag,
+                    multiple: false);
             }
             catch (Exception ex)
             {
                 logger.LogError($"Error processing message: {ex.Message}");
 
+                channel.BasicNack(
+                    deliveryTag: args.DeliveryTag,
+                    multiple: false,
+                    requeue: true);
+
+                /*
                 channel.BasicPublish(
                     exchange: rabbitMqSettings.Value.RetryExchange,
                     routingKey: args.RoutingKey,
@@ -63,9 +71,13 @@ public class RabbitMqConsumer(
                 channel.BasicAck(
                     deliveryTag: args.DeliveryTag,
                     multiple: false);
+                */
             }
         };
-        channel.BasicConsume(rabbitMqSettings.Value.Queue, false, consumer);
+        channel.BasicConsume(
+            queue: rabbitMqSettings.Value.Queue,
+            autoAck: false,
+            consumer: consumer);
 
         return Task.CompletedTask;
     }

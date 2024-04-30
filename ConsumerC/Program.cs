@@ -60,7 +60,9 @@ builder.Services.AddSingleton(sp =>
         autoDelete: false,
         arguments: new Dictionary<string, object>
         {
+            /*
             { "x-dead-letter-exchange", settings.RetryExchange }
+            */
         });
 
     channel.QueueBind(
@@ -68,6 +70,7 @@ builder.Services.AddSingleton(sp =>
         exchange: settings.Exchange,
         routingKey: "*.*");
 
+    /*
     channel.ExchangeDeclare(
         exchange: settings.RetryExchange,
         type: ExchangeType.Topic,
@@ -89,6 +92,7 @@ builder.Services.AddSingleton(sp =>
         queue: settings.RetryQueue,
         exchange: settings.RetryExchange,
         routingKey: "*.*");
+    */
 
     return channel;
 });
