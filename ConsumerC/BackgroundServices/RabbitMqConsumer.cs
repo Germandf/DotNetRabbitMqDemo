@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Shared;
-using System.Text;
 
 namespace ConsumerC.BackgroundServices;
 
@@ -23,29 +22,30 @@ public class RabbitMqConsumer(
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += async (model, args) =>
         {
-            var body = args.Body.ToArray();
-            var message = Encoding.UTF8.GetString(body);
             try
             {
                 using var scope = serviceProvider.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-                if (args.RoutingKey is "city.created" && message.TryDeserialize<CityCreated>(out var cityCreated))
+                if (args.RoutingKey is "city.created")
                 {
+                    var message = args.Body.Deserialize<CityCreated>();
                     var handler = scope.ServiceProvider.GetRequiredService<ICreateCityService>();
-                    await handler.Handle(cityCreated);
+                    await handler.Handle(message);
                 }
-                else if (args.RoutingKey is "customer.created" && message.TryDeserialize<CustomerCreated>(out var customerCreated))
+                else if (args.RoutingKey is "customer.created")
                 {
-                    await mediator.Send(new CreateCustomer.Request(customerCreated));
+                    var message = args.Body.Deserialize<CustomerCreated>();
+                    await mediator.Send(new CreateCustomer.Request(message));
                 }
-                else if (args.RoutingKey is "flight.created" && message.TryDeserialize<FlightCreated>(out var flightCreated))
+                else if (args.RoutingKey is "flight.created")
                 {
-                    await mediator.Send(new CreateFlight.Request(flightCreated));
+                    var message = args.Body.Deserialize<FlightCreated>();
+                    await mediator.Send(new CreateFlight.Request(message));
                 }
                 else
                 {
-                    logger.LogInformation($"Message handling not found for {args.RoutingKey}: {message}");
+                    logger.LogInformation($"Message handling not found for {args.RoutingKey}");
                 }
                 
                 channel.BasicAck(
@@ -66,7 +66,7 @@ public class RabbitMqConsumer(
                     exchange: rabbitMqSettings.Value.RetryExchange,
                     routingKey: args.RoutingKey,
                     basicProperties: args.BasicProperties,
-                    body: body);
+                    body: args.Body);
 
                 channel.BasicAck(
                     deliveryTag: args.DeliveryTag,
