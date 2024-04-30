@@ -3,8 +3,8 @@ using RabbitMQ.Client.Events;
 using System.Text;
 
 Console.WriteLine("Welcome to ConsumerB!");
-var exchange = "dotnet.rabbitmq.demo";
-var queue = "dotnet.rabbitmq.demo.consumer.b";
+var exchange = "producer";
+var queue = "consumer.b";
 var factory = new ConnectionFactory
 {
     HostName = "localhost",
