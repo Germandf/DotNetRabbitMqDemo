@@ -18,7 +18,7 @@ builder.Services.AddDbContext<ApplicationDbContext>((sp, opts) =>
     var connectionString = new NpgsqlConnectionStringBuilder
     {
         Host = settings.Host,
-        Port = int.Parse(settings.Port),
+        Port = settings.Port,
         Username = settings.Username,
         Password = settings.Password,
         Database = settings.Database,

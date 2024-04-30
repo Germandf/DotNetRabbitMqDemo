@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Producer.Extensions;
 using Producer.Models;
+using Producer.Settings;
 using RabbitMQ.Client;
 using Shared;
 
@@ -17,7 +18,7 @@ builder.Services.AddSingleton(sp =>
     var factory = new ConnectionFactory
     {
         HostName = settings.Host,
-        Port = int.Parse(settings.Port),
+        Port = settings.Port,
         UserName = settings.Username,
         Password = settings.Password,
         DispatchConsumersAsync = true,
